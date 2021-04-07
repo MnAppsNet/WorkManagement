@@ -21,6 +21,7 @@ namespace WorkManagemnt
         //public Microsoft.Office.Interop.Outlook.MailItem Mail;
         public string Description;
         public List<string> Attributes;
+        public List<string[]> Subtasks; //06.04.2021 - Subtasks added
         public DateTime? Deadline;
 
         public int ListPossition = -1;
@@ -28,7 +29,7 @@ namespace WorkManagemnt
         private bool completed = false;
         private string emailPath = "";
 
-        public Task(string name, DateTime timestamp, Microsoft.Office.Interop.Outlook.MailItem mail = null, string description = "", List<string> attributes = null, DateTime? deadline = null)
+        public Task(string name, DateTime timestamp, Microsoft.Office.Interop.Outlook.MailItem mail = null, string description = "", List<string> attributes = null, DateTime? deadline = null, List<string[]> subtasks = null)
         {
             Name = name;
             Timestamp = timestamp;
@@ -36,6 +37,7 @@ namespace WorkManagemnt
             Description = description;
             Attributes = attributes;
             Deadline = deadline;
+            Subtasks = subtasks; //06.04.2021 - Subtasks added
 
             if (mail != null)
             {
