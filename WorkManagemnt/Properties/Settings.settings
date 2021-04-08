@@ -17,5 +17,8 @@
     <Setting Name="RefreshRate" Type="System.Decimal" Scope="User">
       <Value Profile="(Default)">2</Value>
     </Setting>
+    <Setting Name="CompletedMailTasksCategory" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Completed</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

@@ -1,12 +1,7 @@
-﻿using Microsoft.Office.Interop.Outlook;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 using WorkManagemnt.Properties;
 
 namespace WorkManagemnt
@@ -61,6 +56,18 @@ namespace WorkManagemnt
         {
             System.Diagnostics.Process.Start(emailPath);
         }
+        //08.04.2021 - Added Mail Deletion On Task Removal - Start >
+        public void DeleteMail()
+        {
+            if (emailPath == "") return;
+            try
+            {
+                File.Delete(emailPath);
+                emailPath = "";
+            }
+            catch { }
+        }
+        //08.04.2021 - Added Mail Deletion On Task Removal - < End
 
     }
 }

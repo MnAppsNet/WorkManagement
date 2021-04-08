@@ -1,17 +1,9 @@
 ﻿using Microsoft.Office.Interop.Outlook;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Diagnostics;
-using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
-using System.Text;
 using System.Windows.Forms;
 using WorkManagemnt.Properties;
 
@@ -33,24 +25,25 @@ namespace WorkManagemnt
 
         private void Form1_Load(object sender, EventArgs e)
         {
-                if (Settings.Default.WorkingDirectory == "")
-                {
-                    Settings.Default.WorkingDirectory = Directory.GetCurrentDirectory();
-                }
-                filespath = Settings.Default.WorkingDirectory;
-                LoadData();
+            if (Settings.Default.WorkingDirectory == "")
+            {
+                Settings.Default.WorkingDirectory = Directory.GetCurrentDirectory();
+            }
+            filespath = Settings.Default.WorkingDirectory;
+            LoadData();
 
-                workingDirectory.Text = Settings.Default.WorkingDirectory;
-                mailCategory.Text = Settings.Default.MailTasksCategory;
+            workingDirectory.Text = Settings.Default.WorkingDirectory;
+            mailCategory.Text = Settings.Default.MailTasksCategory;
+            completedMailCategory.Text = Settings.Default.CompletedMailTasksCategory; //08.04.2021 - Load completed mail task category string
 
-                mailCheck.Checked = Settings.Default.MailCheck;
-                mailRefreshRate.Value = Settings.Default.RefreshRate;
+            mailCheck.Checked = Settings.Default.MailCheck;
+            mailRefreshRate.Value = Settings.Default.RefreshRate;
             try
             {
                 oApp = new Microsoft.Office.Interop.Outlook.Application();
                 oNS = oApp.GetNamespace("MAPI");
                 //oNS.Logon(Missing.Value, Missing.Value, false, true);
-                getMailTasks(mailCategory.Text);
+                getMailTasks(mailCategory.Text, completedMailCategory.Text);
             }
             catch
             {
@@ -60,14 +53,15 @@ namespace WorkManagemnt
             updateView();
         }
 
-        private void getMailTasks(string TasksCategory)
+        private void getMailTasks(string TasksCategory, string CompletedTasksCategory)
         {
             //int max_mail_to_check = 50;
             //int i = 0;
 
             try
             {
-                if (oApp == null){
+                if (oApp == null)
+                {
                     oApp = new Microsoft.Office.Interop.Outlook.Application();
                     oNS = oApp.GetNamespace("MAPI");
                 }
@@ -80,37 +74,46 @@ namespace WorkManagemnt
             oInbox = oNS.GetDefaultFolder(OlDefaultFolders.olFolderInbox).Parent;
 
             List<MailItem> mailItems = new List<MailItem>(); ;
-            
+
             getMails(oInbox, ref mailItems);
-            
+
             bool new_items_found = false;
 
-            foreach (MailItem mailItem in mailItems)
-            {
-                if (mailItem == null)
-                    continue;
-                if (mailItem.Categories.Contains(TasksCategory))
-                {
-                    if (!tasks.Exists(itm => itm.Name == mailItem.Subject && itm.Timestamp == mailItem.ReceivedTime))
-                    {
-                        new_items_found = true;
-                        Task newTask = new Task(
-                            mailItem.Subject,
-                            mailItem.ReceivedTime,
-                            mailItem);
-                        newTask.Completed((mailItem.Categories.Contains("Completed") || mailItem.Categories.Contains("Send Back") ? true : false));
-                        List<string> attr = new List<string>();
-                        attr.Add("Requested by: " + mailItem.SenderName);
-                        newTask.Attributes = attr;
-                        //newTask.Description = mailItem.Body;
-                        tasks.Add(newTask);
-                        taskbarIcon.ShowBalloonTip(3000, "New Task Added", newTask.Name, ToolTipIcon.Info);
-                        taskbarIcon.Tag = newTask;
-                    }
-                }
-                //i++;
-                //if (i >= max_mail_to_check) break;
-            }
+            mailItems.ForEach(mailItem =>
+               {
+                   if (mailItem == null)
+                       return;
+                   if (mailItem.Categories.Contains(TasksCategory))
+                   {
+                       if (!tasks.Exists(itm => itm.Name == mailItem.Subject && itm.Timestamp == mailItem.ReceivedTime))
+                       {
+                           new_items_found = true;
+                           Task newTask = new Task(
+                               mailItem.Subject,
+                               mailItem.ReceivedTime,
+                               mailItem);
+                           newTask.Completed((mailItem.Categories.Contains(CompletedTasksCategory)) ? true : false); //08.04.2021 - Implement completed tasks setting effect
+                           List<string> attr = new List<string>();
+                           attr.Add("Requested by: " + mailItem.SenderName);
+                           newTask.Attributes = attr;
+                           //newTask.Description = mailItem.Body;
+                           tasks.Add(newTask);
+                           taskbarIcon.ShowBalloonTip(3000, "New Task Added", newTask.Name, ToolTipIcon.Info);
+                           taskbarIcon.Tag = newTask;
+                       }
+                   }
+                   //08.04.2021 - Mark completed mail tasks as completed - Begin >
+                   else if (mailItem.Categories.Contains(CompletedTasksCategory))
+                   {
+
+                       Task task = tasks.Find(itm => itm.Name == mailItem.Subject && itm.Timestamp == mailItem.ReceivedTime);
+                       if (task != null)
+                       {
+                           task.Completed(true);
+                       }
+                   }
+                   //08.04.2021 - Mark completed mail tasks as completed - < End
+               });
 
             if (new_items_found)
             {
@@ -185,6 +188,12 @@ namespace WorkManagemnt
         {
             Settings.Default.MailTasksCategory = mailCategory.Text;
         }
+        //08.042021 - Completed Mail Task Category Save Event - Start >
+        private void completedMailCategory_TextChanged(object sender, EventArgs e)
+        {
+            Settings.Default.CompletedMailTasksCategory = completedMailCategory.Text;
+        }
+        //08.042021 - Completed Mail Task Category Save Event - < End
 
         private void addTask_Click(object sender, EventArgs e)
         {
@@ -290,6 +299,7 @@ namespace WorkManagemnt
                 {
                     if (MessageBox.Show("Do you want to delete the task below?\nTask : " + currentTask.Name, "Delete Task ", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
                     {
+                        currentTask.DeleteMail();
                         tasks.Remove(currentTask);
                         updateView();
                         SaveData();
@@ -307,7 +317,7 @@ namespace WorkManagemnt
         {
             try
             {
-                getMailTasks(mailCategory.Text);
+                getMailTasks(mailCategory.Text, completedMailCategory.Text);
             }
             catch
             {

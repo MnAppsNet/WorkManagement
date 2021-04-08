@@ -64,7 +64,7 @@
             this.taskName.Location = new System.Drawing.Point(6, 6);
             this.taskName.Name = "taskName";
             this.taskName.ReadOnly = true;
-            this.taskName.Size = new System.Drawing.Size(835, 26);
+            this.taskName.Size = new System.Drawing.Size(836, 26);
             this.taskName.TabIndex = 1;
             // 
             // taskCompleted
@@ -249,12 +249,12 @@
             // 
             this.taskPanel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left)));
+            this.taskPanel.Controls.Add(this.taskMail);
             this.taskPanel.Controls.Add(this.add_attribute);
             this.taskPanel.Controls.Add(this.no_deadline_panel);
             this.taskPanel.Controls.Add(this.taskName);
             this.taskPanel.Controls.Add(this.deadlineCheckbox);
             this.taskPanel.Controls.Add(this.taskDate);
-            this.taskPanel.Controls.Add(this.taskMail);
             this.taskPanel.Controls.Add(this.taskCompleted);
             this.taskPanel.Controls.Add(this.remove_attribute);
             this.taskPanel.Controls.Add(this.taskDescription);
@@ -347,7 +347,7 @@
             this.Name = "TaskInfo";
             this.Text = "Task";
             this.Load += new System.EventHandler(this.TaskInfo_Load);
-            this.ResizeEnd += new System.EventHandler(this.TaskInfo_Resize);
+            this.Resize += new System.EventHandler(this.TaskInfo_Resize);
             ((System.ComponentModel.ISupportInitialize)(this.taskMail)).EndInit();
             this.no_deadline_panel.ResumeLayout(false);
             this.no_deadline_panel.PerformLayout();

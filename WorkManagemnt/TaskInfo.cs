@@ -1,11 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace WorkManagemnt
@@ -144,13 +139,18 @@ namespace WorkManagemnt
         private void resize_subtask_control(CheckBox cb)
         {
             SizeF charSize = get_font_char_size(cb.Font, ' '); //Monospace font all chars has the same size
-            int availableArea = cb.Width - 35; //Checkbox consumes ~35px
+            int availableArea = subtasksList.Width - 20 - 35; //Checkbox consumes ~35px and ~20px consumes the scrollbar
             int charsPerLine = (int)Math.Floor(availableArea / charSize.Width);
             int lines = (int)Math.Ceiling(cb.Text.Length * 1.0 / charsPerLine);
-            cb.Size = new Size(subtasksList.Width - 20, lines * (int)(charSize.Height)); //20 px is reserved for the scroller
+            cb.Size = new Size(subtasksList.Width - 20, lines * (int)(charSize.Height + 5)); //20 px is reserved for the scroller
         }
         private void arrange_subtasks()
         {
+            //Reset scrollbar possition :
+            subtasksList.AutoScrollPosition = new Point(subtasksList.AutoScrollPosition.X, 0);
+            subtasksList.VerticalScroll.Value = 0;
+            subtasksList.Refresh();
+
             int currentY = 0;
             int offsetY = 5;
             Control c;
@@ -283,10 +283,6 @@ namespace WorkManagemnt
         {
             string subtask = Microsoft.VisualBasic.Interaction.InputBox("Add a subtask", "New subtask under this parent", "");
             if (subtask.Trim() == "") return;
-
-            subtasksList.AutoScrollPosition = new Point(subtasksList.AutoScrollPosition.X, 0);
-            subtasksList.VerticalScroll.Value = 0;
-            subtasksList.Refresh();
 
             add_sub_task(subtask, false);
             arrange_subtasks();
