@@ -91,5 +91,17 @@ namespace WorkManagemnt.Properties {
                 this["CompletedMailTasksCategory"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool MailBodyInDescription {
+            get {
+                return ((bool)(this["MailBodyInDescription"]));
+            }
+            set {
+                this["MailBodyInDescription"] = value;
+            }
+        }
     }
 }

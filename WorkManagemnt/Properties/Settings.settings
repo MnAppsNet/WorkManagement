@@ -20,5 +20,8 @@
     <Setting Name="CompletedMailTasksCategory" Type="System.String" Scope="User">
       <Value Profile="(Default)">Completed</Value>
     </Setting>
+    <Setting Name="MailBodyInDescription" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

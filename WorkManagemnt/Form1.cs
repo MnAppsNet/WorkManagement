@@ -35,6 +35,7 @@ namespace WorkManagemnt
             workingDirectory.Text = Settings.Default.WorkingDirectory;
             mailCategory.Text = Settings.Default.MailTasksCategory;
             completedMailCategory.Text = Settings.Default.CompletedMailTasksCategory; //08.04.2021 - Load completed mail task category string
+            mailBodyInTask.Checked = Settings.Default.MailBodyInDescription; //08.04.2021 - Load mail task in description setting state
 
             mailCheck.Checked = Settings.Default.MailCheck;
             mailRefreshRate.Value = Settings.Default.RefreshRate;
@@ -43,17 +44,18 @@ namespace WorkManagemnt
                 oApp = new Microsoft.Office.Interop.Outlook.Application();
                 oNS = oApp.GetNamespace("MAPI");
                 //oNS.Logon(Missing.Value, Missing.Value, false, true);
-                getMailTasks(mailCategory.Text, completedMailCategory.Text);
+                getMailTasks(mailCategory.Text, completedMailCategory.Text, mailBodyInTask.Checked);
             }
             catch
             {
                 oApp = null;
-                MessageBox.Show("Make sure you are connected to the internet and you have outlook open and connected to your account", "Failed To Check For Tasks", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                //MessageBox.Show("Make sure you are connected to the internet and you have outlook open and connected to your account", "Failed To Check For Tasks", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                checkMail.Enabled = false;
             }
             updateView();
         }
 
-        private void getMailTasks(string TasksCategory, string CompletedTasksCategory)
+        private void getMailTasks(string TasksCategory, string CompletedTasksCategory, bool MailBodyInTask)
         {
             //int max_mail_to_check = 50;
             //int i = 0;
@@ -68,7 +70,7 @@ namespace WorkManagemnt
             }
             catch
             {
-                MessageBox.Show("Make sure you are connected to the internet and you have outlook open and connected to your account", "Failed To Check For Tasks", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
             }
 
             oInbox = oNS.GetDefaultFolder(OlDefaultFolders.olFolderInbox).Parent;
@@ -91,7 +93,8 @@ namespace WorkManagemnt
                            Task newTask = new Task(
                                mailItem.Subject,
                                mailItem.ReceivedTime,
-                               mailItem);
+                               mailItem,
+                               description:(MailBodyInTask)?System.Text.ASCIIEncoding.ASCII.GetString(mailItem.RTFBody as byte[]):"");
                            newTask.Completed((mailItem.Categories.Contains(CompletedTasksCategory)) ? true : false); //08.04.2021 - Implement completed tasks setting effect
                            List<string> attr = new List<string>();
                            attr.Add("Requested by: " + mailItem.SenderName);
@@ -188,12 +191,19 @@ namespace WorkManagemnt
         {
             Settings.Default.MailTasksCategory = mailCategory.Text;
         }
-        //08.042021 - Completed Mail Task Category Save Event - Start >
+        //08.04.2021 - Completed Mail Task Category Save Event - Start >
         private void completedMailCategory_TextChanged(object sender, EventArgs e)
         {
             Settings.Default.CompletedMailTasksCategory = completedMailCategory.Text;
         }
-        //08.042021 - Completed Mail Task Category Save Event - < End
+        //08.04.2021 - Completed Mail Task Category Save Event - < End
+
+        //08.04.2021 - Add mail body in task description setting - Start >
+        private void mailBodyInTask_CheckedChanged(object sender, EventArgs e)
+        {
+            Settings.Default.MailBodyInDescription = mailBodyInTask.Checked;
+        }
+        //08.04.2021 - Add mail body in task description setting - < End
 
         private void addTask_Click(object sender, EventArgs e)
         {
@@ -317,11 +327,12 @@ namespace WorkManagemnt
         {
             try
             {
-                getMailTasks(mailCategory.Text, completedMailCategory.Text);
+                getMailTasks(mailCategory.Text, completedMailCategory.Text, mailBodyInTask.Checked);
+                taskbarIcon.ShowBalloonTip(1500, "Mail tasks checked", " ", ToolTipIcon.Info);
             }
             catch
             {
-                MessageBox.Show("Make sure you are connected to the internet and you have outlook open and connected to your account", "Failed To Check For Tasks", MessageBoxButtons.OK, MessageBoxIcon.Information);
+               MessageBox.Show("Make sure you are connected to the internet and you have outlook open and connected to your account", "Failed To Check For Tasks", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 
