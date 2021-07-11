@@ -141,8 +141,9 @@ namespace WorkManagemnt
             SizeF charSize = get_font_char_size(cb.Font, ' '); //Monospace font all chars has the same size
             int availableArea = subtasksList.Width - 20 - 35; //Checkbox consumes ~35px and ~20px consumes the scrollbar
             int charsPerLine = (int)Math.Floor(availableArea / charSize.Width);
-            int lines = (int)Math.Ceiling(cb.Text.Length * 1.0 / charsPerLine);
-            cb.Size = new Size(subtasksList.Width - 20, lines * (int)(charSize.Height + 5)); //20 px is reserved for the scroller
+            charsPerLine -= (charsPerLine > 10) ? 5 : 0;
+            int lines = (int)Math.Ceiling(cb.Text.Length * 1.0 / charsPerLine) + 1;
+            cb.Size = new Size(subtasksList.Width - 20, lines * ((int)(charSize.Height + 10))); //20 px is reserved for the scroller
         }
         private void arrange_subtasks()
         {
