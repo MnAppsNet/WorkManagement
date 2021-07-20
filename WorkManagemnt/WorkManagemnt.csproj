@@ -66,6 +66,12 @@
     <Compile Include="TaskInfo.Designer.cs">
       <DependentUpon>TaskInfo.cs</DependentUpon>
     </Compile>
+    <Compile Include="TaskItem.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="TaskItem.Designer.cs">
+      <DependentUpon>TaskItem.cs</DependentUpon>
+    </Compile>
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>
     </EmbeddedResource>
@@ -81,6 +87,9 @@
     </Compile>
     <EmbeddedResource Include="TaskInfo.resx">
       <DependentUpon>TaskInfo.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="TaskItem.resx">
+      <DependentUpon>TaskItem.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="app.config" />
     <None Include="Properties\Settings.settings">

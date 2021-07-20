@@ -235,6 +235,10 @@ namespace WorkManagemnt
                 currentTask.Deadline = null;
             }
             this.Close();
+            controller.UpdateView();
+            controller.SaveData();
+            controller.Update();
+            controller.Refresh();
         }
 
         private void pictureBox1_Click(object sender, EventArgs e)

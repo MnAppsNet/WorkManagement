@@ -1,6 +1,7 @@
 ﻿using Microsoft.Office.Interop.Outlook;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -22,6 +23,8 @@ namespace WorkManagemnt
         private Microsoft.Office.Interop.Outlook.NameSpace oNS;
         private Microsoft.Office.Interop.Outlook.MAPIFolder oInbox;
         private string filespath;
+
+        private TaskItem selectedItem = null; //20.07.2021 - New task items logic
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -52,7 +55,7 @@ namespace WorkManagemnt
                 //MessageBox.Show("Make sure you are connected to the internet and you have outlook open and connected to your account", "Failed To Check For Tasks", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 checkMail.Enabled = false;
             }
-            updateView();
+            UpdateView();
         }
 
         private void getMailTasks(string TasksCategory, string CompletedTasksCategory, bool MailBodyInTask)
@@ -120,7 +123,7 @@ namespace WorkManagemnt
 
             if (new_items_found)
             {
-                updateView();
+                UpdateView();
                 SaveData();
             }
         }
@@ -214,43 +217,126 @@ namespace WorkManagemnt
             {
                 tasks.Add(newTask);
             }
-            updateView();
+            UpdateView();
             SaveData();
         }
 
-        private void updateView()
+        public void UpdateView()
         {
             tasks.Sort((x, y) => DateTime.Compare(x.Timestamp, y.Timestamp));
-            taskItems.Items.Clear();
+            taskItems.Controls.Clear();
             int i = 1;
             int completed_taks = 0;
+            //20.07.2021 - Update the item view handler with the new list items - Start >
             foreach (Task t in tasks)
             {
                 string item = t.Name;
+                TaskItem ts = new TaskItem();
+                //Set default status :
+                ts.status.ForeColor = Color.Orange;
+                ts.status.Text = ">>";
+
+                //Change status if not default :
                 if (t.IsCompleted)
                 {
-                    item = "[\u2714]  " + item;
+                    ts.status.Text = "\u2714";
+                    ts.status.ForeColor = Color.Green;
                     completed_taks++;
                 }
-                else
-                    item = "[__]  " + item;
+                else if (t.Deadline != null)
+                {
+                    if (t.Deadline.Value < DateTime.Now)
+                    {
+                        ts.status.ForeColor = Color.Red;
+                        ts.status.Text = "\u26A0";
+                    }
+                }
+                
+                ts.title.Text = item;
+                taskItems.Controls.Add(ts);
+                ts.Location = new Point(0, (tasks.Count - i) * (ts.Height + 5));
+                ts.Width = taskItems.Width - 10;
 
-                taskItems.Items.Insert(0, item);
-                t.ListPossition = tasks.Count - i;
+                ts.MouseDown += selectItem;
+                ts.title.MouseDown += selectItem;
+                ts.status.MouseDown += selectItem;
+                ts.DoubleClick += taskItems_DoubleClick;
+                ts.title.DoubleClick += taskItems_DoubleClick;
+                ts.status.DoubleClick += taskItems_DoubleClick;
+
+                ts.Tag = taskItems.Controls.Count;
+                t.ListPossition = (int)ts.Tag;
                 i++;
             }
+            //20.07.2021 - Update the item view handler with the new list items - < End
             this.Text = Settings.Default.APPLICATION_NAME + " - Tasks Completed: " + completed_taks.ToString() + ", To do: " + (tasks.Count - completed_taks);
         }
 
+        //20.07.2021 - New Item List Functions - Start >
+        private void selectItem(object sender, MouseEventArgs e)
+        {
+            deselectAllItems();
+            if (sender is TaskItem)
+            {
+                selectedItem = (TaskItem)sender;
+                selectedItem.BackColor = Color.LightGray;
+            }
+            else if (((Control)sender).Parent is TaskItem)
+            {
+                selectedItem = (TaskItem)((Control)sender).Parent;
+                selectedItem.BackColor = Color.LightGray;
+            }
+        }
+        private void deselectAllItems()
+        {
+            //foreach( Control c in taskItems.Controls)
+            //{
+            //    if (!(c is TaskItem)) continue;
+            //    c.BackColor = taskItems.BackColor;
+            //}
+            if (selectedItem != null)
+                selectedItem.BackColor = taskItems.BackColor;
+            selectedItem = null;
+        }
+        private TaskItem selectItem(int index)
+        {
+            deselectAllItems();
+            //foreach (Control c in taskItems.Controls)
+            //{
+            //    if (!(c is TaskItem)) continue;
+            //    if ((int)c.Tag == index)
+            //    {
+            //        c.BackColor = Color.LightGray;
+            //    }
+            //    return (TaskItem)c;
+            //}
+            //return null; // < Not found
+            selectedItem = (TaskItem)taskItems.Controls[index];
+            selectedItem.BackColor = Color.LightGray;
+            return selectedItem;
+        }
+        //private TaskItem selectedItem()
+        //{
+        //    foreach (Control c in taskItems.Controls)
+        //    {
+        //        if (!(c is TaskItem)) continue;
+        //        if (c.BackColor == Color.LightGray)
+        //            return (TaskItem)c;
+        //    }
+        //    return null; // < Not found
+        //}
+        //20.07.2021 - New Item List Functions - End <
+
         private void taskItems_DoubleClick(object sender, EventArgs e)
         {
-            if (taskItems.SelectedIndex >= 0 && taskItems.SelectedIndex < taskItems.Items.Count)
+            //20.07.2021 - New task items logic - Start >
+            if (selectedItem != null)
             {
-                Task currentTask = tasks.Find(itm => itm.ListPossition == taskItems.SelectedIndex);
+                Task currentTask = tasks.Find(itm => itm.ListPossition == (int)selectedItem.Tag);  //20.07.2021 - New task items logic - End <
                 TaskInfo taskEdit = new TaskInfo(this, currentTask, true);
                 taskEdit.Show();
-                updateView();
-                SaveData();
+                //UpdateView();
+                //SaveData();
             }
         }
 
@@ -289,29 +375,31 @@ namespace WorkManagemnt
         }
         private void taskStatus(bool completed)
         {
-            if (taskItems.SelectedIndex >= 0 && taskItems.SelectedIndex < taskItems.Items.Count)
+            //20.07.2021 - New task items logic - Start >
+            if (selectedItem != null)
             {
-                Task currentTask = tasks.Find(itm => itm.ListPossition == taskItems.SelectedIndex);
+                Task currentTask = tasks.Find(itm => itm.ListPossition == (int)selectedItem.Tag); //20.07.2021 - New task items logic - End <
                 if (currentTask != null)
                 {
                     currentTask.Completed(completed);
-                    updateView();
+                    UpdateView();
                     SaveData();
                 }
             }
         }
         private void removeSelectedTask()
         {
-            if (taskItems.SelectedIndex >= 0 && taskItems.SelectedIndex < taskItems.Items.Count)
+            //20.07.2021 - New task items logic - Start >
+            if (selectedItem != null)
             {
-                Task currentTask = tasks.Find(itm => itm.ListPossition == taskItems.SelectedIndex);
+                Task currentTask = tasks.Find(itm => itm.ListPossition == (int)selectedItem.Tag); //20.07.2021 - New task items logic - End <
                 if (currentTask != null)
                 {
                     if (MessageBox.Show("Do you want to delete the task below?\nTask : " + currentTask.Name, "Delete Task ", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
                     {
                         currentTask.DeleteMail();
                         tasks.Remove(currentTask);
-                        updateView();
+                        UpdateView();
                         SaveData();
                     }
                 }
@@ -365,7 +453,9 @@ namespace WorkManagemnt
             if (taskbarIcon.Tag != null)
             {
                 Task tsk = (Task)taskbarIcon.Tag;
-                taskItems.SelectedIndex = tsk.ListPossition;
+
+                selectItem(tsk.ListPossition); //20.07.2021 - New task items logic
+
                 taskItems_DoubleClick(null, null);
                 taskbarIcon = null;
             }

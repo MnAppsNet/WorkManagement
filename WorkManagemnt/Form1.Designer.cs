@@ -31,6 +31,9 @@
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.settings_panel = new System.Windows.Forms.Panel();
+            this.mailBodyInTask = new System.Windows.Forms.CheckBox();
+            this.completedMailCategory = new System.Windows.Forms.TextBox();
+            this.completedMailCategoryLabel = new System.Windows.Forms.Label();
             this.mailCheck = new System.Windows.Forms.CheckBox();
             this.label4 = new System.Windows.Forms.Label();
             this.mailRefreshRate = new System.Windows.Forms.NumericUpDown();
@@ -40,7 +43,6 @@
             this.close_settings = new System.Windows.Forms.Label();
             this.mailCategory = new System.Windows.Forms.TextBox();
             this.mailCategoryLabel = new System.Windows.Forms.Label();
-            this.taskItems = new System.Windows.Forms.ListBox();
             this.taskOptions = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.editToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.markAsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -58,9 +60,7 @@
             this.toolStripMenuItem5 = new System.Windows.Forms.ToolStripMenuItem();
             this.stayAwake = new System.Windows.Forms.CheckBox();
             this.keepAwake = new System.Windows.Forms.Timer(this.components);
-            this.completedMailCategory = new System.Windows.Forms.TextBox();
-            this.completedMailCategoryLabel = new System.Windows.Forms.Label();
-            this.mailBodyInTask = new System.Windows.Forms.CheckBox();
+            this.taskItems = new System.Windows.Forms.Panel();
             this.settings_panel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.mailRefreshRate)).BeginInit();
             this.taskOptions.SuspendLayout();
@@ -88,6 +88,38 @@
             this.settings_panel.Size = new System.Drawing.Size(878, 196);
             this.settings_panel.TabIndex = 0;
             this.settings_panel.Visible = false;
+            // 
+            // mailBodyInTask
+            // 
+            this.mailBodyInTask.AutoSize = true;
+            this.mailBodyInTask.Location = new System.Drawing.Point(431, 54);
+            this.mailBodyInTask.Name = "mailBodyInTask";
+            this.mailBodyInTask.Size = new System.Drawing.Size(295, 24);
+            this.mailBodyInTask.TabIndex = 12;
+            this.mailBodyInTask.Text = "Retrieve mail body in task description";
+            this.mailBodyInTask.UseVisualStyleBackColor = true;
+            this.mailBodyInTask.CheckedChanged += new System.EventHandler(this.mailBodyInTask_CheckedChanged);
+            // 
+            // completedMailCategory
+            // 
+            this.completedMailCategory.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.completedMailCategory.Location = new System.Drawing.Point(246, 149);
+            this.completedMailCategory.Name = "completedMailCategory";
+            this.completedMailCategory.Size = new System.Drawing.Size(538, 26);
+            this.completedMailCategory.TabIndex = 11;
+            this.completedMailCategory.TextChanged += new System.EventHandler(this.completedMailCategory_TextChanged);
+            // 
+            // completedMailCategoryLabel
+            // 
+            this.completedMailCategoryLabel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.completedMailCategoryLabel.AutoSize = true;
+            this.completedMailCategoryLabel.Location = new System.Drawing.Point(8, 152);
+            this.completedMailCategoryLabel.Name = "completedMailCategoryLabel";
+            this.completedMailCategoryLabel.Size = new System.Drawing.Size(232, 20);
+            this.completedMailCategoryLabel.TabIndex = 10;
+            this.completedMailCategoryLabel.Text = "Completed Mail Task Category :";
             // 
             // mailCheck
             // 
@@ -197,21 +229,6 @@
             this.mailCategoryLabel.Size = new System.Drawing.Size(151, 20);
             this.mailCategoryLabel.TabIndex = 0;
             this.mailCategoryLabel.Text = "Mail Task Category :";
-            // 
-            // taskItems
-            // 
-            this.taskItems.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.taskItems.ContextMenuStrip = this.taskOptions;
-            this.taskItems.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(161)));
-            this.taskItems.FormattingEnabled = true;
-            this.taskItems.ItemHeight = 26;
-            this.taskItems.Location = new System.Drawing.Point(1, 3);
-            this.taskItems.Name = "taskItems";
-            this.taskItems.Size = new System.Drawing.Size(876, 420);
-            this.taskItems.TabIndex = 1;
-            this.taskItems.DoubleClick += new System.EventHandler(this.taskItems_DoubleClick);
             // 
             // taskOptions
             // 
@@ -372,37 +389,16 @@
             this.keepAwake.Interval = 60000;
             this.keepAwake.Tick += new System.EventHandler(this.keepAwake_Tick);
             // 
-            // completedMailCategory
+            // taskItems
             // 
-            this.completedMailCategory.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            this.taskItems.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.completedMailCategory.Location = new System.Drawing.Point(246, 149);
-            this.completedMailCategory.Name = "completedMailCategory";
-            this.completedMailCategory.Size = new System.Drawing.Size(538, 26);
-            this.completedMailCategory.TabIndex = 11;
-            this.completedMailCategory.TextChanged += new System.EventHandler(this.completedMailCategory_TextChanged);
-            // 
-            // completedMailCategoryLabel
-            // 
-            this.completedMailCategoryLabel.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.completedMailCategoryLabel.AutoSize = true;
-            this.completedMailCategoryLabel.Location = new System.Drawing.Point(8, 152);
-            this.completedMailCategoryLabel.Name = "completedMailCategoryLabel";
-            this.completedMailCategoryLabel.Size = new System.Drawing.Size(232, 20);
-            this.completedMailCategoryLabel.TabIndex = 10;
-            this.completedMailCategoryLabel.Text = "Completed Mail Task Category :";
-            // 
-            // mailBodyInTask
-            // 
-            this.mailBodyInTask.AutoSize = true;
-            this.mailBodyInTask.Location = new System.Drawing.Point(431, 54);
-            this.mailBodyInTask.Name = "mailBodyInTask";
-            this.mailBodyInTask.Size = new System.Drawing.Size(295, 24);
-            this.mailBodyInTask.TabIndex = 12;
-            this.mailBodyInTask.Text = "Retrieve mail body in task description";
-            this.mailBodyInTask.UseVisualStyleBackColor = true;
-            this.mailBodyInTask.CheckedChanged += new System.EventHandler(this.mailBodyInTask_CheckedChanged);
+            this.taskItems.AutoScroll = true;
+            this.taskItems.Location = new System.Drawing.Point(1, 1);
+            this.taskItems.Name = "taskItems";
+            this.taskItems.Size = new System.Drawing.Size(877, 422);
+            this.taskItems.TabIndex = 8;
             // 
             // Form1
             // 
@@ -437,7 +433,6 @@
         private System.Windows.Forms.TextBox mailCategory;
         private System.Windows.Forms.Label mailCategoryLabel;
         private System.Windows.Forms.Label close_settings;
-        private System.Windows.Forms.ListBox taskItems;
         private System.Windows.Forms.Button settings_button;
         private System.Windows.Forms.TextBox workingDirectory;
         private System.Windows.Forms.Label workingDirectoryLabel;
@@ -464,6 +459,7 @@
         private System.Windows.Forms.TextBox completedMailCategory;
         private System.Windows.Forms.Label completedMailCategoryLabel;
         private System.Windows.Forms.CheckBox mailBodyInTask;
+        private System.Windows.Forms.Panel taskItems;
     }
 }
 
