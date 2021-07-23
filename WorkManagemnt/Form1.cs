@@ -23,25 +23,19 @@ namespace WorkManagemnt
         private Microsoft.Office.Interop.Outlook.NameSpace oNS;
         private Microsoft.Office.Interop.Outlook.MAPIFolder oInbox;
         private string filespath;
+        private int vissibleItems = 0;
 
         private TaskItem selectedItem = null; //20.07.2021 - New task items logic
+        private int page = 1; //22.07.2021 - New item pages logic
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            if (Settings.Default.WorkingDirectory == "")
+            if (Properties.Settings.Default.WorkingDirectory == "")
             {
-                Settings.Default.WorkingDirectory = Directory.GetCurrentDirectory();
+                Properties.Settings.Default.WorkingDirectory = Directory.GetCurrentDirectory();
             }
-            filespath = Settings.Default.WorkingDirectory;
+            filespath = Properties.Settings.Default.WorkingDirectory;
             LoadData();
-
-            workingDirectory.Text = Settings.Default.WorkingDirectory;
-            mailCategory.Text = Settings.Default.MailTasksCategory;
-            completedMailCategory.Text = Settings.Default.CompletedMailTasksCategory; //08.04.2021 - Load completed mail task category string
-            mailBodyInTask.Checked = Settings.Default.MailBodyInDescription; //08.04.2021 - Load mail task in description setting state
-
-            mailCheck.Checked = Settings.Default.MailCheck;
-            mailRefreshRate.Value = Settings.Default.RefreshRate;
             try
             {
                 oApp = new Microsoft.Office.Interop.Outlook.Application();
@@ -123,7 +117,7 @@ namespace WorkManagemnt
 
             if (new_items_found)
             {
-                UpdateView();
+                UpdateView(searchBox.Text,searchStatus.SelectedItem.ToString().Substring(0,1));
                 SaveData();
             }
         }
@@ -133,7 +127,7 @@ namespace WorkManagemnt
             //Check all forlders and get mails :
             if (folder.Folders.Count == 0)
             {
-                Items currentItems = folder.Items.Restrict("[Categories] = '" + Settings.Default.MailTasksCategory + "'");
+                Items currentItems = folder.Items.Restrict("[Categories] = '" + Properties.Settings.Default.MailTasksCategory + "'");
                 foreach( MailItem mi in currentItems)
                     mailItems.Add(mi);
             }
@@ -143,7 +137,7 @@ namespace WorkManagemnt
                 {
                     try
                     {
-                        Items currentItems = folder.Items.Restrict("[Categories] = '" + Settings.Default.MailTasksCategory + "'");
+                        Items currentItems = folder.Items.Restrict("[Categories] = '" + Properties.Settings.Default.MailTasksCategory + "'");
                         foreach (MailItem mi in currentItems)
                             mailItems.Add(mi);
                     }
@@ -161,7 +155,7 @@ namespace WorkManagemnt
                 BinaryFormatter bf = new BinaryFormatter();
                 bf.Serialize(fl, tasks);
             }
-            Settings.Default.Save();
+            Properties.Settings.Default.Save();
         }
         public void LoadData()
         {
@@ -177,6 +171,25 @@ namespace WorkManagemnt
             }
             else
                 tasks = new List<Task>();
+
+            //Load Settings :
+            workingDirectory.Text = Properties.Settings.Default.WorkingDirectory;
+            mailCategory.Text = Properties.Settings.Default.MailTasksCategory;
+            completedMailCategory.Text = Properties.Settings.Default.CompletedMailTasksCategory; //08.04.2021 - Load completed mail task category string
+            mailBodyInTask.Checked = Properties.Settings.Default.MailBodyInDescription; //08.04.2021 - Load mail task in description setting state
+            mailCheck.Checked = Properties.Settings.Default.MailCheck;
+            mailRefreshRate.Value = Properties.Settings.Default.RefreshRate;
+            //21.07.2021 - Add possible status search terms - Start >
+            searchStatus.Items.Add(Settings.Strings.SearchAllStatus);
+            foreach (System.Reflection.FieldInfo p in typeof(Settings.Status).GetFields())
+            {
+                searchStatus.Items.Add(p.GetValue(null) + " " + p.Name);
+            }
+            searchStatus.SelectedIndex = 0;
+            tasksPerPage.Value = Settings.General.ItemsPerPage;
+            //21.07.2021 - Add possible status search terms - < End
+            Settings.General.ItemsPerPage = (UInt16)Properties.Settings.Default.TasksPerPage; //22.07.2021 - Paging functionality, set tasks per page setting
+            tasksPerPage.Value = Settings.General.ItemsPerPage;
         }
 
         private void close_settings_Click(object sender, EventArgs e)
@@ -187,24 +200,24 @@ namespace WorkManagemnt
 
         private void settings_button_Click(object sender, EventArgs e)
         {
-            settings_panel.Show();
+            settings_panel.Visible = !settings_panel.Visible;
         }
 
         private void mailCategory_TextChanged(object sender, EventArgs e)
         {
-            Settings.Default.MailTasksCategory = mailCategory.Text;
+            Properties.Settings.Default.MailTasksCategory = mailCategory.Text;
         }
         //08.04.2021 - Completed Mail Task Category Save Event - Start >
         private void completedMailCategory_TextChanged(object sender, EventArgs e)
         {
-            Settings.Default.CompletedMailTasksCategory = completedMailCategory.Text;
+            Properties.Settings.Default.CompletedMailTasksCategory = completedMailCategory.Text;
         }
         //08.04.2021 - Completed Mail Task Category Save Event - < End
 
         //08.04.2021 - Add mail body in task description setting - Start >
         private void mailBodyInTask_CheckedChanged(object sender, EventArgs e)
         {
-            Settings.Default.MailBodyInDescription = mailBodyInTask.Checked;
+            Properties.Settings.Default.MailBodyInDescription = mailBodyInTask.Checked;
         }
         //08.04.2021 - Add mail body in task description setting - < End
 
@@ -218,43 +231,60 @@ namespace WorkManagemnt
                 tasks.Add(newTask);
             }
             UpdateView();
+            searchStatus.Text = Settings.Strings.SearchBoxPlaceholder;
+            searchStatus.SelectedIndex = 0;
+            searchStatus.Text = Settings.Strings.SearchAllStatus;
             SaveData();
         }
 
-        public void UpdateView()
+        public void UpdateView(string searchTerm = "", string status = "")
         {
             tasks.Sort((x, y) => DateTime.Compare(x.Timestamp, y.Timestamp));
             taskItems.Controls.Clear();
-            int i = 1;
+            taskItems.BackColor = Settings.Colors.TasksPanelBackground;
+            int i = 0;
+            int j = 0;
             int completed_taks = 0;
+            if (searchTerm == Settings.Strings.SearchBoxPlaceholder) searchTerm = ""; //22.07.2021 - Search functionality
+            if (status != "") if (status == Settings.Strings.SearchAllStatus) status = ""; else status = status.Substring(0, 1); //22.07.2021 - Search functionality
+
+            //int maxItems = tasks.FindAll((item) =>
+            //{
+            //    return (item.Name != null) ? (
+            //    (searchTerm != "") ? item.Name.ToLower().Contains(searchTerm.ToLower()) : true     //Search term restriction
+            //    && (status != "") ? (item.GetStatus() == status) : true                            //Search status restriction
+            //    ) : true;
+            //}).Count;
+            //if (maxItems > page * Settings.General.ItemsPerPage) maxItems = maxItems - page * Settings.General.ItemsPerPage;
+            //if (maxItems > Settings.General.ItemsPerPage) maxItems = Settings.General.ItemsPerPage;
             //20.07.2021 - Update the item view handler with the new list items - Start >
-            foreach (Task t in tasks)
+            vissibleItems = 0;
+            Task t;
+            for (int k = tasks.Count - 1; k >= 0; k--)
             {
+                t = tasks[k];
+                j++;
+                if (j < (page - 1)  * Settings.General.ItemsPerPage) continue; //22.07.2021 - Skip items from previous pages
+                if (i == Settings.General.ItemsPerPage) break; //22.07.2021 - Maximum limit per page is reached
+                
+                if (t.Name != null)
+                {
+                    if (searchTerm != "" && !t.Name.ToLower().Contains(searchTerm.ToLower())) continue; //If doesn't contain search term, skip item
+                    if (status != "" && !(t.GetStatus() == status)) continue;                           //if doesn't contain status, skip item
+                }
                 string item = t.Name;
                 TaskItem ts = new TaskItem();
                 //Set default status :
-                ts.status.ForeColor = Color.Orange;
-                ts.status.Text = ">>";
+                setStatus(ts, t.GetStatus());
 
                 //Change status if not default :
                 if (t.IsCompleted)
-                {
-                    ts.status.Text = "\u2714";
-                    ts.status.ForeColor = Color.Green;
                     completed_taks++;
-                }
-                else if (t.Deadline != null)
-                {
-                    if (t.Deadline.Value < DateTime.Now)
-                    {
-                        ts.status.ForeColor = Color.Red;
-                        ts.status.Text = "\u26A0";
-                    }
-                }
-                
+
                 ts.title.Text = item;
                 taskItems.Controls.Add(ts);
-                ts.Location = new Point(0, (tasks.Count - i) * (ts.Height + 5));
+                ts.Height = Settings.Sizes.ItemHeight;
+                ts.Location = new Point(0, i * (ts.Height + Settings.Margins.ItemsBottom));
                 ts.Width = taskItems.Width - 10;
 
                 ts.MouseDown += selectItem;
@@ -263,28 +293,101 @@ namespace WorkManagemnt
                 ts.DoubleClick += taskItems_DoubleClick;
                 ts.title.DoubleClick += taskItems_DoubleClick;
                 ts.status.DoubleClick += taskItems_DoubleClick;
+                ts.BackColor = Settings.Colors.TaskItemsBackground;
 
-                ts.Tag = taskItems.Controls.Count;
-                t.ListPossition = (int)ts.Tag;
+                ts.ContextMenuStrip = taskOptions;
+                ts.title.ContextMenuStrip = taskOptions;
+                ts.status.ContextMenuStrip = taskOptions;
+
+                ts.Tag = t; //21.07.2021 - Set the task item on the Tag of task view item for easy finding
+                t.ListPossition = taskItems.Controls.Count;
                 i++;
             }
+            vissibleItems = i;
+            //22.07.2021 - Handle task pages - Start >
+            if (i == Settings.General.ItemsPerPage && i > 0 || page > 1)
+            {
+                Button previousButton = new Button();
+                previousButton.BackColor = taskItems.BackColor;
+                previousButton.Width = taskItems.Width / 2;
+                previousButton.Height = Settings.Sizes.ItemHeight;
+                previousButton.TextAlign = ContentAlignment.MiddleCenter;
+                previousButton.Click += NextPage_Click;
+                
+                if (page * Settings.General.ItemsPerPage < tasks.Count)
+                {
+                    Button nextButton = new Button();
+                    taskItems.Controls.Add(nextButton);
+                    nextButton.BackColor = previousButton.BackColor;
+                    nextButton.Width = previousButton.Width;
+                    nextButton.Height = previousButton.Height;
+                    nextButton.TextAlign = previousButton.TextAlign;
+                    nextButton.Click += NextPage_Click;
+                    nextButton.Location = new Point(nextButton.Width, (vissibleItems) * (previousButton.Height + Settings.Margins.ItemsBottom));
+                    nextButton.Text = Settings.Strings.NextPage;
+                    nextButton.BringToFront();
+                }
+                if (page > 1)
+                {
+                    taskItems.Controls.Add(previousButton);
+                    previousButton.Location = new Point(0, (vissibleItems) * (previousButton.Height + Settings.Margins.ItemsBottom));
+                    previousButton.Text = Settings.Strings.PreviousPage;
+                }
+                else { previousButton.Dispose(); }
+            }
+            //22.07.2021 - Handle task pages - < End
+
             //20.07.2021 - Update the item view handler with the new list items - < End
-            this.Text = Settings.Default.APPLICATION_NAME + " - Tasks Completed: " + completed_taks.ToString() + ", To do: " + (tasks.Count - completed_taks);
+            this.Text = Properties.Settings.Default.APPLICATION_NAME + " - Tasks Completed: " + completed_taks.ToString() + ", To do: " + (vissibleItems - completed_taks) + " | Total Tasks : " + tasks.Count;
         }
 
+        //22.07.2021 - Go to next page - Start >
+        private void NextPage_Click(object sender, EventArgs e)
+        {
+            Button btn = (Button)sender;
+            if (btn.Text == Settings.Strings.NextPage)
+                page++;
+            else
+                page--;
+            UpdateView(searchBox.Text, searchStatus.SelectedItem.ToString());
+        }
+        //22.07.2021 - Go to next page - < End
+
+        //21.07.2021 - Resize items in task item list - Start >
+        private void resizeItems()
+        {
+            foreach (Control c in taskItems.Controls)
+            {
+                if (!(c is TaskItem)) continue;
+                c.Width = taskItems.Width + Settings.Margins.ItemsRight;
+            }
+        }
+        //21.07.2021 - Resize items in task item list - < End
+
         //20.07.2021 - New Item List Functions - Start >
+        private void setStatus(TaskItem task, string status)
+        {
+            task.status.Text = status;
+            Color taskColor = Settings.Colors.Default;
+            switch (status) {
+                case Settings.Status.Active: taskColor = Settings.Colors.ActiveTask; break; 
+                case Settings.Status.Completed: taskColor = Settings.Colors.CompletedTask; break; 
+                case Settings.Status.Delayed: taskColor = Settings.Colors.DelayedTask; break; 
+            }
+            task.status.ForeColor = taskColor;
+        }
         private void selectItem(object sender, MouseEventArgs e)
         {
             deselectAllItems();
             if (sender is TaskItem)
             {
                 selectedItem = (TaskItem)sender;
-                selectedItem.BackColor = Color.LightGray;
+                selectedItem.BackColor = Settings.Colors.SelectedItemBackground;
             }
             else if (((Control)sender).Parent is TaskItem)
             {
                 selectedItem = (TaskItem)((Control)sender).Parent;
-                selectedItem.BackColor = Color.LightGray;
+                selectedItem.BackColor = Settings.Colors.SelectedItemBackground;
             }
         }
         private void deselectAllItems()
@@ -306,13 +409,13 @@ namespace WorkManagemnt
             //    if (!(c is TaskItem)) continue;
             //    if ((int)c.Tag == index)
             //    {
-            //        c.BackColor = Color.LightGray;
+            //        c.BackColor = Settings.SelectedItemBackground;
             //    }
             //    return (TaskItem)c;
             //}
             //return null; // < Not found
             selectedItem = (TaskItem)taskItems.Controls[index];
-            selectedItem.BackColor = Color.LightGray;
+            selectedItem.BackColor = Settings.Colors.SelectedItemBackground;
             return selectedItem;
         }
         //private TaskItem selectedItem()
@@ -320,7 +423,7 @@ namespace WorkManagemnt
         //    foreach (Control c in taskItems.Controls)
         //    {
         //        if (!(c is TaskItem)) continue;
-        //        if (c.BackColor == Color.LightGray)
+        //        if (c.BackColor == Settings.SelectedItemBackground)
         //            return (TaskItem)c;
         //    }
         //    return null; // < Not found
@@ -332,7 +435,7 @@ namespace WorkManagemnt
             //20.07.2021 - New task items logic - Start >
             if (selectedItem != null)
             {
-                Task currentTask = tasks.Find(itm => itm.ListPossition == (int)selectedItem.Tag);  //20.07.2021 - New task items logic - End <
+                Task currentTask = (Task)selectedItem.Tag;  //20.07.2021 - New task items logic - End <
                 TaskInfo taskEdit = new TaskInfo(this, currentTask, true);
                 taskEdit.Show();
                 //UpdateView();
@@ -347,13 +450,13 @@ namespace WorkManagemnt
                 checkMail.Start();
             else
                 checkMail.Stop();
-            Settings.Default.MailCheck = mailCheck.Checked;
+            Properties.Settings.Default.MailCheck = mailCheck.Checked;
         }
 
         private void mailRefreshRate_ValueChanged(object sender, EventArgs e)
         {
             checkMail.Interval = (int)mailRefreshRate.Value * 60 * 1000;
-            Settings.Default.RefreshRate = mailRefreshRate.Value;
+            Properties.Settings.Default.RefreshRate = mailRefreshRate.Value;
         }
 
         private void editToolStripMenuItem_Click(object sender, EventArgs e)
@@ -378,11 +481,11 @@ namespace WorkManagemnt
             //20.07.2021 - New task items logic - Start >
             if (selectedItem != null)
             {
-                Task currentTask = tasks.Find(itm => itm.ListPossition == (int)selectedItem.Tag); //20.07.2021 - New task items logic - End <
+                Task currentTask = (Task)selectedItem.Tag; //20.07.2021 - New task items logic - End <
                 if (currentTask != null)
                 {
                     currentTask.Completed(completed);
-                    UpdateView();
+                    setStatus(selectedItem, (completed)?Settings.Status.Completed :Settings.Status.Active); //21.07.2021 - Performance improvements
                     SaveData();
                 }
             }
@@ -392,14 +495,14 @@ namespace WorkManagemnt
             //20.07.2021 - New task items logic - Start >
             if (selectedItem != null)
             {
-                Task currentTask = tasks.Find(itm => itm.ListPossition == (int)selectedItem.Tag); //20.07.2021 - New task items logic - End <
+                Task currentTask = (Task)selectedItem.Tag; //20.07.2021 - New task items logic - End <
                 if (currentTask != null)
                 {
                     if (MessageBox.Show("Do you want to delete the task below?\nTask : " + currentTask.Name, "Delete Task ", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
                     {
                         currentTask.DeleteMail();
                         tasks.Remove(currentTask);
-                        UpdateView();
+                        UpdateView(searchBox.Text, searchStatus.SelectedItem.ToString());
                         SaveData();
                     }
                 }
@@ -559,5 +662,72 @@ namespace WorkManagemnt
             mouseInput.mkhi.mi.dx = -1;
             SendInput(1, ref mouseInput, Marshal.SizeOf(new INPUT()));
         }
+        //21.07.2021 - Search functionality - Start >
+        private void searchBox_Leave(object sender, EventArgs e)
+        {
+            if (searchBox.Text == "")
+            {
+                searchBox.Text = Settings.Strings.SearchBoxPlaceholder;
+            }
+        }
+
+        private void searchBox_Enter(object sender, EventArgs e)
+        {
+            if (searchBox.Text == Settings.Strings.SearchBoxPlaceholder)
+                searchBox.Text = "";
+        }
+
+        private void searchBox_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                UpdateView(searchBox.Text, searchStatus.SelectedItem.ToString());
+            }
+        }
+
+        private void Form1_ResizeEnd(object sender, EventArgs e)
+        {
+            resizeItems();
+        }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+            label1.Focus();
+            searchBox.Text = Settings.Strings.SearchBoxPlaceholder;
+            if (tasks.Count != vissibleItems)
+                UpdateView("", searchStatus.SelectedItem.ToString());
+        }
+
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (searchStatus.SelectedIndex == -1) searchStatus.SelectedIndex = 0;
+            if (searchStatus.Focused) {
+                if (searchStatus.SelectedIndex == 0)
+                {
+                    if (vissibleItems != tasks.Count)
+                        UpdateView(searchBox.Text, "");
+                }
+                else
+                {
+                    UpdateView(searchBox.Text, searchStatus.SelectedItem.ToString());
+                }
+            }
+        }
+
+        private void tasksPerPage_ValueChanged(object sender, EventArgs e)
+        {
+            Settings.General.ItemsPerPage = (UInt16)tasksPerPage.Value;
+            Properties.Settings.Default.TasksPerPage = Settings.General.ItemsPerPage;
+            Properties.Settings.Default.Save();
+        }
+
+        private void settings_panel_VisibleChanged(object sender, EventArgs e)
+        {
+            if (!settings_panel.Visible)
+            {
+                UpdateView(searchBox.Text, searchStatus.Text);
+            }
+        }
+        //21.07.2021 - Search functionality - < End
     }
 }

@@ -36,7 +36,7 @@ namespace WorkManagemnt
 
             if (mail != null)
             {
-                string folder = Settings.Default.WorkingDirectory + @"\Mails";
+                string folder = Properties.Settings.Default.WorkingDirectory + @"\Mails";
                 if (!System.IO.Directory.Exists(folder))
                 {
                     Directory.CreateDirectory(folder);
@@ -68,6 +68,15 @@ namespace WorkManagemnt
             catch { }
         }
         //08.04.2021 - Added Mail Deletion On Task Removal - < End
+
+        //22.07.2021 - Get Task Status - Start > 
+        public string GetStatus()
+        {
+            if (completed) return Settings.Status.Completed;
+            if (Deadline != null) if (Deadline.Value < DateTime.Now) return Settings.Status.Delayed;
+            return Settings.Status.Active;
+        }
+        //22.07.2021 - Get Task Status - < End
 
     }
 }

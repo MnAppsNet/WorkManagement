@@ -29,12 +29,12 @@ namespace WorkManagemnt
         {
             if (taskCompleted.Checked)
             {
-                taskCompleted.ForeColor = Color.Green;
+                taskCompleted.ForeColor = Settings.Colors.CompletedTask;
                 taskCompleted.Text = "Completed";
             }
             else
             {
-                taskCompleted.ForeColor = Color.Red;
+                taskCompleted.ForeColor = Settings.Colors.ActiveTask;
                 taskCompleted.Text = "Not Completed";
             }
         }
@@ -106,7 +106,7 @@ namespace WorkManagemnt
             {
                 if (deadline.Value < DateTime.Now)
                 {
-                    deadline_label.ForeColor = Color.Red;
+                    deadline_label.ForeColor = Settings.Colors.DelayedTask;
                 }
             }
         }
@@ -250,9 +250,9 @@ namespace WorkManagemnt
         private void deadline_ValueChanged(object sender, EventArgs e)
         {
             if (deadline.Value < DateTime.Now)
-                deadline_label.ForeColor = Color.Red;
+                deadline_label.ForeColor = Settings.Colors.DelayedTask;
             else
-                deadline_label.ForeColor = Color.Black;
+                deadline_label.ForeColor = Settings.Colors.ActiveTask;
         }
 
         private void deadlineCheckbox_CheckedChanged(object sender, EventArgs e)
@@ -307,7 +307,7 @@ namespace WorkManagemnt
                 selectedSubtask.BackColor = subtasksList.BackColor;
             }
             selectedSubtask = (CheckBox)sender;
-            selectedSubtask.BackColor = Color.LightGray;
+            selectedSubtask.BackColor = Settings.Colors.SelectedItemBackground;
         }
 
         private void TaskInfo_Resize(object sender, EventArgs e)
