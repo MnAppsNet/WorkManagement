@@ -28,9 +28,9 @@ namespace WorkManagemnt
         //Status settings :
         public static class Status
         {
-            public const string Active = "\u2192";
-            public const string Completed = "\u2714";
-            public const string Delayed = "\u26A0";
+            public const string Active = "\u2192";       
+            public const string Completed = "\u2714";   
+            public const string Delayed = "\u26A0";     
         }
 
         //Margins :

@@ -235,7 +235,7 @@ namespace WorkManagemnt
                 currentTask.Deadline = null;
             }
             this.Close();
-            controller.UpdateView();
+            controller.UpdateView(controller.searchBox.Text, controller.searchStatus.Text);
             controller.SaveData();
             controller.Update();
             controller.Refresh();

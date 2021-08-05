@@ -71,8 +71,7 @@ namespace WorkManagemnt
             }
 
             oInbox = oNS.GetDefaultFolder(OlDefaultFolders.olFolderInbox).Parent;
-
-            List<MailItem> mailItems = new List<MailItem>(); ;
+            List<MailItem> mailItems = new List<MailItem>();
 
             getMails(oInbox, ref mailItems);
 
@@ -98,8 +97,12 @@ namespace WorkManagemnt
                            newTask.Attributes = attr;
                            //newTask.Description = mailItem.Body;
                            tasks.Add(newTask);
-                           taskbarIcon.ShowBalloonTip(3000, "New Task Added", newTask.Name, ToolTipIcon.Info);
-                           taskbarIcon.Tag = newTask;
+                           try
+                           {
+                               taskbarIcon.ShowBalloonTip(3000, "New Task Added", newTask.Name, ToolTipIcon.Info);
+                               taskbarIcon.Tag = newTask;
+                           }
+                           catch { }
                        }
                    }
                    //08.04.2021 - Mark completed mail tasks as completed - Begin >
@@ -124,12 +127,15 @@ namespace WorkManagemnt
 
         private void getMails(MAPIFolder folder, ref List<MailItem> mailItems)
         {
+            string parameters = "[Categories] = '" + Properties.Settings.Default.MailTasksCategory + "'";
+
             //Check all forlders and get mails :
             if (folder.Folders.Count == 0)
             {
-                Items currentItems = folder.Items.Restrict("[Categories] = '" + Properties.Settings.Default.MailTasksCategory + "'");
+                Items currentItems = folder.Items.Restrict(parameters);
                 foreach( MailItem mi in currentItems)
-                    mailItems.Add(mi);
+                    if (mi.ReceivedTime > DateTime.Now.AddDays(-1 * Properties.Settings.Default.MailFromDays))
+                        mailItems.Add(mi);
             }
             else
             {
@@ -137,9 +143,10 @@ namespace WorkManagemnt
                 {
                     try
                     {
-                        Items currentItems = folder.Items.Restrict("[Categories] = '" + Properties.Settings.Default.MailTasksCategory + "'");
+                        Items currentItems = folder.Items.Restrict(parameters);
                         foreach (MailItem mi in currentItems)
-                            mailItems.Add(mi);
+                            if (mi.ReceivedTime > DateTime.Now.AddDays(-1 * Properties.Settings.Default.MailFromDays))
+                                mailItems.Add(mi);
                     }
                     catch { }
                     getMails(subFolder, ref mailItems);
@@ -179,6 +186,7 @@ namespace WorkManagemnt
             mailBodyInTask.Checked = Properties.Settings.Default.MailBodyInDescription; //08.04.2021 - Load mail task in description setting state
             mailCheck.Checked = Properties.Settings.Default.MailCheck;
             mailRefreshRate.Value = Properties.Settings.Default.RefreshRate;
+            mailsFromDays.Value = Properties.Settings.Default.MailFromDays;
             //21.07.2021 - Add possible status search terms - Start >
             searchStatus.Items.Add(Settings.Strings.SearchAllStatus);
             foreach (System.Reflection.FieldInfo p in typeof(Settings.Status).GetFields())
@@ -248,18 +256,9 @@ namespace WorkManagemnt
             if (searchTerm == Settings.Strings.SearchBoxPlaceholder) searchTerm = ""; //22.07.2021 - Search functionality
             if (status != "") if (status == Settings.Strings.SearchAllStatus) status = ""; else status = status.Substring(0, 1); //22.07.2021 - Search functionality
 
-            //int maxItems = tasks.FindAll((item) =>
-            //{
-            //    return (item.Name != null) ? (
-            //    (searchTerm != "") ? item.Name.ToLower().Contains(searchTerm.ToLower()) : true     //Search term restriction
-            //    && (status != "") ? (item.GetStatus() == status) : true                            //Search status restriction
-            //    ) : true;
-            //}).Count;
-            //if (maxItems > page * Settings.General.ItemsPerPage) maxItems = maxItems - page * Settings.General.ItemsPerPage;
-            //if (maxItems > Settings.General.ItemsPerPage) maxItems = Settings.General.ItemsPerPage;
-            //20.07.2021 - Update the item view handler with the new list items - Start >
             vissibleItems = 0;
             Task t;
+            string itemStatus = "";
             for (int k = tasks.Count - 1; k >= 0; k--)
             {
                 t = tasks[k];
@@ -270,7 +269,15 @@ namespace WorkManagemnt
                 if (t.Name != null)
                 {
                     if (searchTerm != "" && !t.Name.ToLower().Contains(searchTerm.ToLower())) continue; //If doesn't contain search term, skip item
-                    if (status != "" && !(t.GetStatus() == status)) continue;                           //if doesn't contain status, skip item
+                    //05.08.2021 - Active status shows everything except completed - Start >
+                    itemStatus = t.GetStatus();
+                    if (status != "") {
+                        if (status == Settings.Status.Active)
+                        {
+                            if (itemStatus == Settings.Status.Completed) continue;
+                        } else if ( !(itemStatus == status) ) continue;  //if doesn't contain status, skip item
+                    }
+                    //05.08.2021 - Active status shows everything except completed - < End
                 }
                 string item = t.Name;
                 TaskItem ts = new TaskItem();
@@ -516,15 +523,15 @@ namespace WorkManagemnt
 
         private void button1_Click(object sender, EventArgs e)
         {
-            try
-            {
+            //try
+            //{
                 getMailTasks(mailCategory.Text, completedMailCategory.Text, mailBodyInTask.Checked);
                 taskbarIcon.ShowBalloonTip(1500, "Mail tasks checked", " ", ToolTipIcon.Info);
-            }
-            catch
-            {
-               MessageBox.Show("Make sure you are connected to the internet and you have outlook open and connected to your account", "Failed To Check For Tasks", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }
+            //}
+            //catch
+            //{
+            //   MessageBox.Show("Make sure you are connected to the internet and you have outlook open and connected to your account", "Failed To Check For Tasks", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            //}
         }
 
         private void toolStripMenuItem5_Click(object sender, EventArgs e)
@@ -727,6 +734,11 @@ namespace WorkManagemnt
             {
                 UpdateView(searchBox.Text, searchStatus.Text);
             }
+        }
+
+        private void mailsFromDays_ValueChanged(object sender, EventArgs e)
+        {
+            Properties.Settings.Default.MailFromDays = (int)mailsFromDays.Value;
         }
         //21.07.2021 - Search functionality - < End
     }

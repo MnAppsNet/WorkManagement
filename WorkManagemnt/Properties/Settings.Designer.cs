@@ -115,5 +115,17 @@ namespace WorkManagemnt.Properties {
                 this["TasksPerPage"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("30")]
+        public int MailFromDays {
+            get {
+                return ((int)(this["MailFromDays"]));
+            }
+            set {
+                this["MailFromDays"] = value;
+            }
+        }
     }
 }
